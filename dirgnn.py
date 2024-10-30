@@ -7,6 +7,7 @@ import rng_funcs as rng
 import networkx as nx
 import matplotlib.pyplot as plt
 import numpy as np
+from typing import List
 
 
 '''
@@ -258,7 +259,7 @@ def topological_sort_with_random_priority(DAG):
 '''
 Sorts the tasks topologically with a random bias for task selection
 '''
-def rcpsp_solver_with_buffer(DAG, min_buffer, max_buffer):
+def rcpsp_solver_with_buffer(DAG, min_buffer, max_buffer) -> List[int]:
 
     final_schedule = []
     resource_availability = {}

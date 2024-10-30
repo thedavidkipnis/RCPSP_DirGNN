@@ -111,7 +111,7 @@ def run(gen_node_deltas, update_task_baseline_deltas):
 
 if __name__ == "__main__":
     DAG = run(gen_node_deltas=False, update_task_baseline_deltas=False)
-    dgn.rcpsp_solver_with_buffer(DAG, 0, 0)
+    sc = dgn.rcpsp_solver_with_buffer(DAG, 0, 0)
     dgn.print_DAG(DAG)
     dgn.display_DAG(DAG)
 
