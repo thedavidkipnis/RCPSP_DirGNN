@@ -279,7 +279,8 @@ def rcpsp_solver_with_buffer(DAG, min_buffer, max_buffer) -> List[int]:
             if DAG.nodes[predecessor]['global_delta'] > earliest_start:
                 earliest_start = DAG.nodes[predecessor]['global_delta']
 
-        earliest_start = max(resource_availability[resource], earliest_start)
+        rand_delay = random.randint(15,420)
+        earliest_start = max(resource_availability[resource], earliest_start) + rand_delay
 
         DAG.nodes[task]['global_delta'] = earliest_start + DAG.nodes[task]['local_delta']
         resource_availability[resource] = DAG.nodes[task]['global_delta'] # TODO: add random buff here
@@ -287,52 +288,6 @@ def rcpsp_solver_with_buffer(DAG, min_buffer, max_buffer) -> List[int]:
         final_schedule.append((task, earliest_start))
 
     return final_schedule
-    
-'''
-def rcpsp_solver_with_buffer(DAG, min_buffer, max_buffer):
-    # Step 1: Initialize an empty list `schedule` to store the final task schedule
-    INITIALIZE an empty list --> `schedule` to store tuples (task, start_time)
-
-    # Step 2: Track when each resource (employee) is available
-    INITIALIZE a dictionary --> `resource_availability` where:
-        FOR each task in the DAG:
-            SET resource_availability[employee] = 0
-            # This means every employee is initially available at time 0
-
-    # Step 3: Get the topologically sorted tasks (with random priority) from `topological_sort_with_random_priority`
-    SET `sorted_tasks` = topological_sort_with_random_priority(DAG)
-
-    # Step 4: Schedule each task in the sorted order
-    FOR each 'task' in `sorted_tasks`:
-        # Get the employee (resource) assigned to this 'task'
-        SET employee = DAG.nodes[task]['emp_ID']
-
-        # Step 5: Find the earliest start time based on task dependencies (predecessors)
-        INITIALIZE `earliest_start` = 0
-        IF the 'task' has predecessors:
-            FOR each predecessor task 'pred' of this 'task':
-                FIND the `end_time` of 'pred' in `schedule`
-                CALCULATE end_time_of_pred = start_time_of_pred + duration_of_pred
-                ADD a random buffer between some 'min_buffer' (15min) and 'max_buffer' (24 hours) to simulate delays
-                SET earliest_start = maximum of (end_time_of_pred + buffer) for all predecessors
-
-        # Step 6: Determine when the employee is available to start the task
-        GET the availability time of the employee (resource_availability[employee])
-        ADD a random delay (resource_delay) to simulate resource unavailability
-
-        # The final start time is the later of the earliest_start (dependencies) and employee availability
-        SET start_time = maximum of (earliest_start, resource_availability[employee]) + resource_delay
-
-        # Step 7: Record the task's start time in the `schedule`
-        ADD (task, start_time) to the `schedule` list
-
-        # Step 8: Update the availability of the employee
-        # After an employee was assigned to their first job, the resource availiability "time" become that job's completion time (start_time + duration of task)
-        SET resource_availability[employee] = start_time + duration_of_task
-
-    # Step 9: Return the final schedule
-    RETURN `schedule`  # A list of (task, start_time) tuples for the entire project
-'''
 
 
 '''
@@ -359,7 +314,10 @@ def display_DAG(DAG):
     fig.tight_layout()
     plt.show()
 
-# Schedule visualization function
+
+'''
+Schedule visualization function
+'''
 def visualize_schedule(DAG):
     # Extract task information: calculate start, duration, and sort by start time
     tasks = []
