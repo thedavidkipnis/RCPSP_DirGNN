@@ -114,5 +114,6 @@ if __name__ == "__main__":
     sc = dgn.rcpsp_solver_with_buffer(DAG, 0, 0)
     dgn.print_DAG(DAG)
     dgn.display_DAG(DAG)
+    dgn.visualize_schedule(DAG)
 
 
