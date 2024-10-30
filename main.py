@@ -1,6 +1,5 @@
 import rng_funcs as rng
-import dirgnn as dgn
-import networkx as nx
+import graph_functions as dgn
 
 # to install stuff: py -m pip install scipy
 

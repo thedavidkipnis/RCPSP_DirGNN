@@ -1,6 +1,6 @@
 import unittest
 import main
-import dirgnn
+import graph_functions
 
 class TestDataPermanence(unittest.TestCase):
 
