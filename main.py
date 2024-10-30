@@ -106,15 +106,15 @@ def run(gen_node_deltas, update_task_baseline_deltas):
         DAG = dgn.gen_DAG(5, TEAMS, EMPLOYEES, task_baseline_times, update_task_baseline_deltas)
     else:
         DAG = dgn.gen_DAG_from_file('task_baseline_deltas.npy', 'task_edges.npy', TEAMS, EMPLOYEES) # TODO: rewrite to include filepath instead of file name
-    
-    dgn.simulation_global_delta_process_DAG(DAG)
-    
+        
     return DAG
 
 if __name__ == "__main__":
-    DAG = run(gen_node_deltas=True, update_task_baseline_deltas=True)
-    
+    DAG = run(gen_node_deltas=False, update_task_baseline_deltas=False)
+    sc = dgn.rcpsp_solver_with_buffer(DAG, 0, 0)
+    print(sc)
     dgn.print_DAG(DAG)
     dgn.display_DAG(DAG)
+    dgn.visualize_schedule(DAG)
 
 

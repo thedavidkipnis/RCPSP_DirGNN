@@ -7,6 +7,10 @@ import rng_funcs as rng
 import networkx as nx
 import matplotlib.pyplot as plt
 import numpy as np
+from typing import List
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+from typing import Dict
 
 
 '''
@@ -173,7 +177,9 @@ def gen_DAG(num_top_layers: int, teams, employees, task_baseline_time, update_ta
 
     return DAG
 
-
+'''
+Function for generating DAG from files task_baseline_deltas and task_edges
+'''
 def gen_DAG_from_file(nodes_file, edges_file, teams, employees):
     try:
         nodes = np.load('task_baseline_deltas.npy', allow_pickle='TRUE').item()
@@ -193,7 +199,7 @@ def gen_DAG_from_file(nodes_file, edges_file, teams, employees):
     for node in nodes:
         employee = random.sample(sorted(teams[team_idx_counter].employees), 1)[0]
         exp_coefficient, nc_prob = rng.adjusted_task_time_and_prob_of_error(employees[employee].exp_years)
-        local_delta = round(exp_coefficient * node, 5) # baseline delta = node[1]
+        local_delta = round(exp_coefficient * nodes[node], 5) # baseline delta = node[1]
 
         nc_occured = False
         if random.random() < nc_prob:
@@ -222,35 +228,66 @@ def gen_DAG_from_file(nodes_file, edges_file, teams, employees):
 
 
 '''
-Main point for simulation - filling out the global deltas based on predecessor attributes per node
+Sorts the tasks topologically with a random bias for task selection
 '''
-def simulation_global_delta_process_DAG(DAG):
+def topological_sort_with_random_priority(DAG):
 
-    node_bucket = set()
+    # initializing in degrees to 0 for each node
+    task_in_degrees = {}
+    queue = set()
+    for node in DAG.nodes:
+        node_count = len(list(DAG.predecessors(node)))
+        task_in_degrees[node] = node_count
 
-    # inserting first node's ID into bucket
-    node_bucket.add(0)
+        if node_count < 1: # adding all initial tasks that have 0 predecessors
+            queue.add(node)
 
-    while len(node_bucket) > 0:
+    sort_results = []
 
-        # list of successors to be added for next iteration of processing (neighbors)
-        to_be_added = set()
+    # processing the queue - bucket style!
+    while len(queue) > 0:
+        task_to_process = random.sample(list(queue), 1)[0]
+        sort_results.append(task_to_process)
+        queue.remove(task_to_process)
 
-        # looking at every current node; this is where resource contention reolution will be happening
-        for node in node_bucket:
-            print(node, DAG[node])
+        for successor in DAG.successors(task_to_process):
+            task_in_degrees[successor] -= 1
 
-            for successor in DAG[node]:
-                to_be_added.add(successor)
+            if task_in_degrees[successor] < 1:
+                queue.add(successor)
 
-        print(to_be_added)
+    return sort_results
 
-        node_bucket.clear()
-        for i in to_be_added:
-            node_bucket.add(i)
 
-        print(node_bucket)
-        print('======')
+'''
+Sorts the tasks topologically with a random bias for task selection
+'''
+def rcpsp_solver_with_buffer(DAG, min_buffer, max_buffer) -> List[int]:
+
+    final_schedule = []
+    resource_availability = {}
+
+    for node in DAG.nodes: # all resources are available to start
+        resource_availability[DAG.nodes[node]['emp_ID']] = 0
+
+    sorted_tasks = topological_sort_with_random_priority(DAG)
+    for task in sorted_tasks:
+        resource = DAG.nodes[task]['emp_ID']
+
+        earliest_start = 0
+        for predecessor in DAG.predecessors(task): # finding last predecessor that finished
+            if DAG.nodes[predecessor]['global_delta'] > earliest_start:
+                earliest_start = DAG.nodes[predecessor]['global_delta']
+
+        rand_delay = random.randint(15,420)
+        earliest_start = max(resource_availability[resource], earliest_start) + rand_delay
+
+        DAG.nodes[task]['global_delta'] = earliest_start + DAG.nodes[task]['local_delta']
+        resource_availability[resource] = DAG.nodes[task]['global_delta'] # TODO: add random buff here
+
+        final_schedule.append((task, earliest_start))
+
+    return final_schedule
 
 
 '''
@@ -272,9 +309,49 @@ def display_DAG(DAG):
     pos = nx.multipartite_layout(DAG, subset_key="layer")
 
     fig, ax = plt.subplots(figsize=(10,10))
-    nx.draw_networkx(DAG, pos=pos, ax=ax, node_size=10, node_color = 'white' , edge_color = 'white', font_color = 'black', with_labels=False)
+    nx.draw_networkx(DAG, pos=pos, ax=ax, node_size=10, node_color = 'white' , edge_color = 'white', font_color = 'black', with_labels=True)
     ax.set_facecolor('#1AA7EC')
     fig.tight_layout()
+    plt.show()
+
+
+'''
+Schedule visualization function
+'''
+def visualize_schedule(DAG):
+    # Extract task information: calculate start, duration, and sort by start time
+    tasks = []
+    for node, attributes in DAG.nodes(data=True):
+        start_time = attributes['global_delta'] - attributes['local_delta']
+        duration = attributes['local_delta']
+        emp_id = attributes['emp_ID']
+        tasks.append((node, start_time, duration, emp_id))
+    
+    # Sort tasks by start time in ascending order
+    tasks.sort(key=lambda x: x[1], reverse=True)  # Sort by start time
+
+    # Prepare for plotting
+    fig, ax = plt.subplots(figsize=(15, 10))
+
+    # Extract unique employee IDs for coloring
+    unique_emp_ids = sorted(set(task[3] for task in tasks))
+    colors = cm.get_cmap('Set1', len(unique_emp_ids))
+    emp_color_map = {emp_id: colors(i / len(unique_emp_ids)) for i, emp_id in enumerate(unique_emp_ids)}
+
+    # Plot each task as a horizontal bar
+    for i, (task_id, start_time, duration, emp_id) in enumerate(tasks):
+        ax.barh(i, duration, left=start_time, height=0.5, align='center',
+                color=emp_color_map[emp_id], alpha=0.8, edgecolor='black')
+        ax.text(start_time + duration / 2, i, f'Task {task_id}',
+                ha='center', va='center', color='black', fontweight='bold', fontsize = 7.5)
+    
+    # Setting labels for y-axis as task IDs in order of start time
+    ax.set_yticks(range(len(tasks)))
+    ax.set_yticklabels([f'Task {task[0]}' for task in tasks])
+    ax.set_xlabel('Time')
+    ax.set_ylabel('Tasks')
+    ax.set_title('Task Schedule')
+    plt.tight_layout()
     plt.show()
 
 

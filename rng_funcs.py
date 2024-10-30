@@ -108,3 +108,6 @@ def error_count_for_iterations_and_experience(num_trials: int, prob_of_error: fl
 
     # TODO: turn q to rng, generate num between 0 and 1 instead of constant .95
     return sc.binom.ppf(q=0.95, n=num_trials, p=prob_of_error)
+
+
+# diq in butt
