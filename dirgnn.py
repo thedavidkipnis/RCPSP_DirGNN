@@ -8,6 +8,9 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import numpy as np
 from typing import List
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+from typing import Dict
 
 
 '''
@@ -354,6 +357,43 @@ def display_DAG(DAG):
     nx.draw_networkx(DAG, pos=pos, ax=ax, node_size=10, node_color = 'white' , edge_color = 'white', font_color = 'black', with_labels=True)
     ax.set_facecolor('#1AA7EC')
     fig.tight_layout()
+    plt.show()
+
+# Schedule visualization function
+def visualize_schedule(DAG):
+    # Extract task information: calculate start, duration, and sort by start time
+    tasks = []
+    for node, attributes in DAG.nodes(data=True):
+        start_time = attributes['global_delta'] - attributes['local_delta']
+        duration = attributes['local_delta']
+        emp_id = attributes['emp_ID']
+        tasks.append((node, start_time, duration, emp_id))
+    
+    # Sort tasks by start time in ascending order
+    tasks.sort(key=lambda x: x[1], reverse=True)  # Sort by start time
+
+    # Prepare for plotting
+    fig, ax = plt.subplots(figsize=(15, 10))
+
+    # Extract unique employee IDs for coloring
+    unique_emp_ids = sorted(set(task[3] for task in tasks))
+    colors = cm.get_cmap('Set1', len(unique_emp_ids))
+    emp_color_map = {emp_id: colors(i / len(unique_emp_ids)) for i, emp_id in enumerate(unique_emp_ids)}
+
+    # Plot each task as a horizontal bar
+    for i, (task_id, start_time, duration, emp_id) in enumerate(tasks):
+        ax.barh(i, duration, left=start_time, height=0.5, align='center',
+                color=emp_color_map[emp_id], alpha=0.8, edgecolor='black')
+        ax.text(start_time + duration / 2, i, f'Task {task_id}',
+                ha='center', va='center', color='black', fontweight='bold', fontsize = 7.5)
+    
+    # Setting labels for y-axis as task IDs in order of start time
+    ax.set_yticks(range(len(tasks)))
+    ax.set_yticklabels([f'Task {task[0]}' for task in tasks])
+    ax.set_xlabel('Time')
+    ax.set_ylabel('Tasks')
+    ax.set_title('Task Schedule')
+    plt.tight_layout()
     plt.show()
 
 
